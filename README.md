@@ -5,8 +5,8 @@ and copy a plugin file (.plg) into all that folders without the need of a PC.
 Created basically for practice programming on the 3DS.
 
 # Compiling requirements:
-DevkitProARM -> https://devkitpro.org/wiki/Getting_Started
-3ds-dev from the devkitpro pacman repository -> https://devkitpro.org/wiki/devkitPro_pacman
+- DevkitProARM -> https://devkitpro.org/wiki/Getting_Started
+- 3ds-dev from the devkitpro pacman repository -> https://devkitpro.org/wiki/devkitPro_pacman
 
 
 # TO-DO:
