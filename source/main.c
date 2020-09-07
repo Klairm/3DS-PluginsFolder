@@ -9,6 +9,7 @@ char pluginNames[50][50];
 u64* titleIds;
 u32 titleCount;
 bool copyMenu = false;
+Result r;
 
 int pos = 1;
 
@@ -34,7 +35,7 @@ void drawMain(PrintConsole top, PrintConsole bottom){
 
 int getPluginCount();
 void listPlugins(int pos,PrintConsole top,PrintConsole bottom);
-void pluginFolders(PrintConsole top, PrintConsole bottom);
+void pluginFolders(char* titleID,PrintConsole top, PrintConsole bottom);
 void copyPlugin(int pos, PrintConsole top, PrintConsole bottom);
 int fileCopy(const char* filein,const char* fileout);
 
@@ -48,6 +49,18 @@ int main()
 	consoleInit(GFX_TOP,&topScreen);
 	
 	amInit();
+	
+	char titleID[50];
+	
+	r = AM_GetTitleCount(MEDIATYPE_SD,&titleCount);
+	if(R_FAILED(r)) printf("Failed: 0x%lx\n",r);
+	
+	
+	titleIds = (u64*) calloc(titleCount, sizeof(u64));
+
+	r = AM_GetTitleList(&titleCount,MEDIATYPE_SD,titleCount,titleIds);
+	if(R_FAILED(r)) printf("Failed: 0x%lx\n",r);
+
 	bool mainMenu = true;
 	drawMain(topScreen,bottomScreen);
 	
@@ -74,7 +87,7 @@ int main()
 		
 		else if(!mainMenu && !copyMenu)
 		{
-		   pluginFolders(topScreen,bottomScreen);
+		   pluginFolders(titleID,topScreen,bottomScreen);
 		 }
 	}
 	
@@ -97,7 +110,7 @@ int main()
 			
 			else if(!mainMenu && !copyMenu)
 			{
-				pluginFolders(topScreen,bottomScreen);
+				pluginFolders(titleID,topScreen,bottomScreen);
 			}
 
 	}
@@ -108,7 +121,7 @@ int main()
 		if(pos == 1 && mainMenu){
 			mainMenu = false;
 			copyMenu = false;
-			pluginFolders(topScreen,bottomScreen);
+			pluginFolders(titleID,topScreen,bottomScreen);
 			}
 		else if(pos == 2 && mainMenu){
 			mainMenu=false;
@@ -136,7 +149,6 @@ int main()
 	gspWaitForVBlank();
 	
 	}
-	
 	free(titleIds);
 	amExit();
 	gfxExit();
@@ -145,22 +157,12 @@ int main()
 	
 	}
 
-void pluginFolders(PrintConsole top, PrintConsole bottom){
+void pluginFolders(char* titleID,PrintConsole top, PrintConsole bottom){
 	
 	consoleSelect(&bottom);
 	consoleClear();
 	consoleSelect(&top);
 	consoleClear();
-	
-	char titleID[50];
-	Result r;
-	r = AM_GetTitleCount(MEDIATYPE_SD,&titleCount);
-	if(R_FAILED(r)) printf("Failed: 0x%lx\n",r);
-
-	titleIds = (u64*) calloc(titleCount, sizeof(u64));
-
-	r = AM_GetTitleList(&titleCount,MEDIATYPE_SD,titleCount,titleIds);
-	if(R_FAILED(r)) printf("Failed: 0x%lx\n",r);
 	
 	for(u32 i = 0; i < titleCount;i++)
 	{
@@ -229,7 +231,7 @@ void copyPlugin(int pos, PrintConsole top, PrintConsole bottom){
 		consoleSelect(&top);
 		consoleClear();
 		
-		char target_dir[50];
+		char target_dir[256];
 		printf("Wait...\n");
 		for(int i =0;i<titleCount;i++){
 				
