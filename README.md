@@ -1,5 +1,5 @@
 # 3DS-PluginsFolder
-This program will allow you to create folders for all Titles ID on the directory sdmc:/plugin/
+This program will allow you to create folders for all Titles ID on the directory sdmc:/plugin/ (plugin folder has to be created before)
 and copy a plugin file (.plg) into all that folders without the need of a PC.
 
 Created basically for practice programming on the 3DS.
@@ -11,9 +11,9 @@ Created basically for practice programming on the 3DS.
 
 # TO-DO:
 - Optimize and clean code.
-- Add more error handlers
-- Add .3gx support
-
+- Add more error handlers.
+- Add .3gx support.
+- Create sdmc:/plugin/ folder if doesn't exists.
 ![alt text](https://i.imgur.com/R2nTyrS.gif)
 
 # Thanks
