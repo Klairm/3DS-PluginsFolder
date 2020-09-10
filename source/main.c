@@ -4,6 +4,11 @@
 #include <3ds.h>
 #include <errno.h>
 #include <dirent.h>
+#include <unistd.h>
+
+extern int errno;
+
+int errnum;
 
 char pluginNames[50][50];
 u64* titleIds;
@@ -43,7 +48,7 @@ int fileCopy(const char* filein,const char* fileout);
 int main()
 {
 	gfxInitDefault();
-	
+	gspWaitForVBlank();
 	PrintConsole topScreen, bottomScreen;
 	consoleInit(GFX_BOTTOM,&bottomScreen);
 	consoleInit(GFX_TOP,&topScreen);
@@ -146,7 +151,7 @@ int main()
 
 	gfxSwapBuffers();
 	gfxFlushBuffers();
-	gspWaitForVBlank();
+
 	
 	}
 	free(titleIds);
@@ -167,14 +172,14 @@ void pluginFolders(char* titleID,PrintConsole top, PrintConsole bottom){
 	for(u32 i = 0; i < titleCount;i++)
 	{
 
-			sprintf(titleID,"plugin/000%llx",titleIds[i]);
+			sprintf(titleID,"sdmc:/plugin/000%llx",titleIds[i]);
 
 		DIR* dir = opendir(titleID);
 		if (dir){
 				printf("Folder plugin/%llx exists, skipping...\n",titleIds[i]);
 		}
 		else{
-				r = mkdir(titleID,0766);
+				r = mkdir(titleID,0777);
 				printf("Creating folder->%llx\n",titleIds[i]);
 		}
 		if(R_FAILED(r)) printf("Failed creating directory: 0x%lx\n",r);
@@ -196,10 +201,9 @@ void listPlugins(int pos, PrintConsole top, PrintConsole bottom){
    consoleSelect(&top);
    consoleClear();
    printf("== Detected plugins ==\n");
-	
    DIR *p;
    struct dirent *pp;
-   p = opendir ("/");
+   p = opendir ("sdmc:/");
    if (p != NULL)
    {
 
@@ -232,18 +236,25 @@ void copyPlugin(int pos, PrintConsole top, PrintConsole bottom){
 		consoleClear();
 		
 		char target_dir[256];
+		char plugin[256];
 		printf("Wait...\n");
 		for(int i =0;i<titleCount;i++){
 				
-				sprintf(target_dir,"plugin/000%llx/%s",titleIds[i],pluginNames[pos]);
-
-				if(fileCopy(pluginNames[pos],target_dir) != 0)
+				sprintf(target_dir,"sdmc:/plugin/000%llx/%s",titleIds[i],pluginNames[pos]);
+				sprintf(plugin,"sdmc:/%s",pluginNames[pos]);
+				if(access(target_dir, F_OK) != -1)
 				{
-						printf("Failed copying the plugin.");
-						break;
+					printf("Exists, skipping... %s \n",target_dir);	
 				}
-				else{
+				else {
+					if(fileCopy(plugin,target_dir) != 0){
+						printf("Failed copying the plugin.\n");
+						break;
+					}
+					else{
 						printf("Copied plugin on %s\n",target_dir);
+					}
+						
 				}
 		}
 		printf("Done!\n");
@@ -280,15 +291,15 @@ int fileCopy(const char* filein, const char* fileout) {
 		int c;
 
 		if (!fin) return 1;
-
+		
 		FILE* fout = fopen(fileout, "w+");
 
 		if (!fout) return 2;
 
 		while ((c = fgetc(fin)) != EOF) {
-				fputc(c, fout);
+				r = fputc(c, fout);
 		}
-
+		
 		fclose(fin);
 		fclose(fout);
 		return 0;
