@@ -2,13 +2,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <3ds.h>
-#include <errno.h>
 #include <dirent.h>
 #include <unistd.h>
-
-extern int errno;
-
-int errnum;
 
 char pluginNames[50][50];
 u64* titleIds;
@@ -48,7 +43,7 @@ int fileCopy(const char* filein,const char* fileout);
 int main()
 {
 	gfxInitDefault();
-	gspWaitForVBlank();
+	
 	PrintConsole topScreen, bottomScreen;
 	consoleInit(GFX_BOTTOM,&bottomScreen);
 	consoleInit(GFX_TOP,&topScreen);
@@ -70,6 +65,7 @@ int main()
 	drawMain(topScreen,bottomScreen);
 	
 	while(aptMainLoop()){
+	gspWaitForVBlank();
 	hidScanInput();
 
 	u32 kDown = hidKeysDown();
