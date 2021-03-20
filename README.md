@@ -12,7 +12,6 @@ Created basically for practice programming on the 3DS.
 # TO-DO:
 - Optimize and clean code.
 - Add more error handlers.
-- Create sdmc:/plugin/ folder if doesn't exists.
 ![alt text](https://i.imgur.com/R2nTyrS.gif)
 
 # Thanks
