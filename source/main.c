@@ -4,14 +4,22 @@
 #include <3ds.h>
 #include <dirent.h>
 #include <unistd.h>
+#include <errno.h>
 
-char pluginNames[50][50];
-u64* titleIds;
-u32 titleCount;
-bool copyMenu = false;
 Result r;
 
+u64* titleIds;
+u32 titleCount;
+
+char pluginNames[50][50];
+
+bool copyMenu = false;
+bool mainMenu = false;
+bool folderDetection = true;
+bool error = false;
+
 int pos = 1;
+
 
 void arrowMenu(int realPos, int arrowPos){
 	if(realPos == arrowPos){
@@ -23,6 +31,7 @@ void arrowMenu(int realPos, int arrowPos){
 }
 
 void drawMain(PrintConsole top, PrintConsole bottom){
+
 	consoleSelect(&bottom);
 	consoleClear();
 	printf("<A> Select <START> Exit \n");
@@ -40,17 +49,45 @@ void copyPlugin(int pos, PrintConsole top, PrintConsole bottom);
 int fileCopy(const char* filein,const char* fileout);
 
 
+
+
+ 
+
 int main()
 {
 	gfxInitDefault();
-	
 	PrintConsole topScreen, bottomScreen;
+	char titleID[50];
+	
 	consoleInit(GFX_BOTTOM,&bottomScreen);
 	consoleInit(GFX_TOP,&topScreen);
-	
 	amInit();
 	
-	char titleID[50];
+	consoleSelect(&bottomScreen);	
+
+	// Check if folder plugin exists 	
+	DIR* dir = opendir("sdmc:/plugin/");
+	
+	if (dir){
+		printf("/plugin/ folder detected.\n");
+	}else if(ENOENT == errno){		
+		r = mkdir("/plugin/",0777);
+		printf("Creating /plugin folder...\n");
+	}else if(EACCES == errno){
+		printf("Not enough permissions to perform this action.\n" ); 
+		error = true;
+	}else{
+		printf("Something wrong happened.\n");
+		error = true;
+	}
+
+	if(R_FAILED(r)) printf("Failed creating directory: 0x%lx\n",r);
+	
+	closedir(dir);
+	
+	printf("Press <A> to continue");
+	
+
 	
 	r = AM_GetTitleCount(MEDIATYPE_SD,&titleCount);
 	if(R_FAILED(r)) printf("Failed: 0x%lx\n",r);
@@ -60,11 +97,12 @@ int main()
 
 	r = AM_GetTitleList(&titleCount,MEDIATYPE_SD,titleCount,titleIds);
 	if(R_FAILED(r)) printf("Failed: 0x%lx\n",r);
-
-	bool mainMenu = true;
-	drawMain(topScreen,bottomScreen);
 	
-	while(aptMainLoop()){
+
+
+	
+while(aptMainLoop()){
+
 	gspWaitForVBlank();
 	hidScanInput();
 
@@ -78,39 +116,42 @@ int main()
 		if(mainMenu){
 			if(pos > 2) pos = 2;
 	 		drawMain(topScreen,bottomScreen);
-		}
+		}else if(folderDetection){
+			if(error) printf("Something wrong happened.\n");
+			else  printf("Folder /plugin/ detected.\n");
+			printf("Press <A> to continue");
+			
+		}else if(copyMenu){
 		
-		else if(copyMenu){
-			int maxPos = getPluginCount();
+			pos = 0;
+			int	maxPos = getPluginCount();
 			if(pos > (maxPos - 1) ) pos =  0;
 			listPlugins(pos,topScreen,bottomScreen);
-		}
-		
-		else if(!mainMenu && !copyMenu)
-		{
+
+		}else if(!mainMenu && !copyMenu && !folderDetection){
 		   pluginFolders(titleID,topScreen,bottomScreen);
-		 }
+		}
 	}
 	
 	else if (kDown & KEY_DUP)
 	{
 			pos--;
 			consoleClear();
-			if(mainMenu)
-			{
+			if(mainMenu){
+				
 				if(pos < 1) pos = 1;
 				drawMain(topScreen,bottomScreen);
 		  
-			}
-			
-			else if(copyMenu)
-			{
+			}else if(folderDetection){
+				if(error) printf("Something wrong happened.\n");
+				else printf("Folder /plugin/ detected.\n");
+				printf("Press <A> to continue");
+			}else if(copyMenu){
+
 				if(pos < 0) pos = 1;
 				listPlugins(pos,topScreen,bottomScreen);
-			}
-			
-			else if(!mainMenu && !copyMenu)
-			{
+
+			}else if(!mainMenu && !copyMenu && !folderDetection){
 				pluginFolders(titleID,topScreen,bottomScreen);
 			}
 
@@ -123,24 +164,29 @@ int main()
 			mainMenu = false;
 			copyMenu = false;
 			pluginFolders(titleID,topScreen,bottomScreen);
-			}
-		else if(pos == 2 && mainMenu){
+		}else if(pos == 2 && mainMenu){
 			mainMenu=false;
 			listPlugins(pos,topScreen,bottomScreen);
 			copyMenu=true;
-			}
-		
-		else if(copyMenu){
+		}else if(copyMenu){
 			 copyPlugin(pos,topScreen,bottomScreen); 
-		 }
+		}else if(folderDetection && error){
+			break;
+		}else if(folderDetection && !error){
+			mainMenu = true;
+			folderDetection = false;
+			drawMain(topScreen,bottomScreen);
+		}
 
 	}
-	else if (kDown & KEY_B)
-	{
+
+	else if (kDown & KEY_B){
+
 	   consoleClear();
 	   mainMenu = true;
 	   copyMenu = false;
 	   drawMain(topScreen,bottomScreen);
+
 	}
 	
 	else if (kDown & KEY_START) break;
@@ -150,6 +196,7 @@ int main()
 
 	
 	}
+
 	free(titleIds);
 	amExit();
 	gfxExit();
@@ -190,13 +237,14 @@ void pluginFolders(char* titleID,PrintConsole top, PrintConsole bottom){
 
 void listPlugins(int pos, PrintConsole top, PrintConsole bottom){
    
-   
    consoleSelect(&bottom);
    consoleClear();
    printf("< A > Select < B > Back\n");
    consoleSelect(&top);
    consoleClear();
+  
    printf("== Detected plugins ==\n");
+	
    DIR *p;
    struct dirent *pp;
    p = opendir ("sdmc:/");
@@ -216,8 +264,7 @@ void listPlugins(int pos, PrintConsole top, PrintConsole bottom){
 						i++;
 
 					}
-
-	}
+			}
 	}
 
 		closedir(p);
@@ -226,6 +273,7 @@ void listPlugins(int pos, PrintConsole top, PrintConsole bottom){
 
 
 void copyPlugin(int pos, PrintConsole top, PrintConsole bottom){
+//	This function copies the selected plugin into all the titleID's folders
 		consoleSelect(&bottom);
 		consoleClear();
 		consoleSelect(&top);
@@ -262,7 +310,8 @@ void copyPlugin(int pos, PrintConsole top, PrintConsole bottom){
 
 int getPluginCount(){
 //  FIXME: Find another way of getting the plugin count
-
+//  IDEA:  Join getPluginCount() and listPlugins() in one function when the program starts so it gets the plugin count and also an array with all the plugin names 
+// 	This function counts all the .plg files on the root, and it returns the total count.
    DIR *p;
    struct dirent *pp;
    int i = 0;
